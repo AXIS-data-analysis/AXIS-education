@@ -20,29 +20,45 @@ print("\n[데이터 미리보기]")
 print(df.head())
 
 # ==========================================
-# 2. 프로페셔널한 데이터 시각화 (EDA)
+# 2. 4분할 대시보드 데이터 시각화 (EDA)
 # ==========================================
-print("\n시각화 창(그래프)이 뜹니다. 그래프 창을 닫아야 다음 통계 분석이 진행됩니다!")
+print("\n시각화 창(대시보드)이 뜹니다. 그래프 창을 닫아야 다음 통계 분석이 진행됩니다!")
 
-# 그래프 사이즈 설정
-plt.figure(figsize=(12, 5))
+# 2x2 사이즈의 도화지 생성 (전체 제목을 위한 여백 포함)
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(14, 10))
+fig.suptitle('A/B Test Campaign Analysis Dashboard', fontsize=20, fontweight='bold')
 
-# 그래프 1: 프로모션별 매출 분포 (Boxplot)
-plt.subplot(1, 2, 1)
-sns.boxplot(x='Promotion', y='SalesInThousands', data=df, palette='Set2')
-plt.title('Sales Distribution by Promotion')
-plt.xlabel('Promotion Type')
-plt.ylabel('Sales (in Thousands)')
+# "그래프 1 (좌측 상단): 프로모션별 평균 매출 (Bar Plot)"
+# 평균값과 95% 신뢰구간(오차막대)을 보여주어 ANOVA 분석과 직접적으로 연결됩니다.
+sns.barplot(x='Promotion', y='SalesInThousands', data=df, ax=axes[0, 0], palette='viridis', errorbar=('ci', 95))
+axes[0, 0].set_title("1. Average Sales by Promotion (with 95% CI)")
+axes[0, 0].set_xlabel("Promotion Type")
+axes[0, 0].set_ylabel("Average Sales (in Thousands)")
 
-# 그래프 2: 매장 규모(MarketSize)에 따른 프로모션 효과
-plt.subplot(1, 2, 2)
-sns.boxplot(x='MarketSize', y='SalesInThousands', hue='Promotion', data=df, palette='Set2')
-plt.title('Sales by Market Size and Promotion')
-plt.xlabel('Market Size')
-plt.ylabel('Sales (in Thousands)')
+# "그래프 2 (우측 상단): 프로모션별 매출 분포 (Boxplot)"
+# 기존에 작성하셨던 코드입니다. 이상치(Outlier)와 중앙값을 한눈에 봅니다.
+sns.boxplot(x='Promotion', y='SalesInThousands', data=df, ax=axes[0, 1], palette='Set2')
+axes[0, 1].set_title("2. Sales Distribution by Promotion")
+axes[0, 1].set_xlabel("Promotion Type")
+axes[0, 1].set_ylabel("Sales (in Thousands)")
 
-plt.tight_layout()
-plt.show() # 여기서 그래프 창이 열립니다. 창을 닫아야 아래 코드가 마저 실행됩니다.
+# "그래프 3 (좌측 하단): 매장 규모에 따른 프로모션 효과 (Boxplot)"
+# 기존에 작성하셨던 코드입니다. 그룹별 세부 효과를 확인합니다.
+sns.boxplot(x='MarketSize', y='SalesInThousands', hue='Promotion', data=df, ax=axes[1, 0], palette='Set2')
+axes[1, 0].set_title("3. Sales by Market Size and Promotion")
+axes[1, 0].set_xlabel("Market Size")
+axes[1, 0].set_ylabel("Sales (in Thousands)")
+
+# "그래프 4 (우측 하단): 프로모션별 매출 밀도 곡선 (KDE Plot)"
+# 매출 데이터가 어느 금액대에 가장 많이 몰려있는지 산의 능선처럼 부드럽게 보여줍니다.
+sns.kdeplot(data=df, x='SalesInThousands', hue='Promotion', fill=True, ax=axes[1, 1], palette='Set1', alpha=0.5)
+axes[1, 1].set_title("4. Sales Density Distribution by Promotion")
+axes[1, 1].set_xlabel("Sales (in Thousands)")
+axes[1, 1].set_ylabel("Density")
+
+# 제목 겹침 방지 및 여백 자동 조절 (이전 프로젝트의 노하우 적용!)
+plt.tight_layout(rect=[0, 0, 1, 0.95])
+plt.show() # 여기서 4분할 대시보드 창이 열립니다.
 
 # ==========================================
 # 3. 본격적인 통계 분석 (ANOVA 및 사후 검증)

@@ -14,38 +14,53 @@ path = kagglehub.dataset_download("ashydv/advertising-dataset")
 csv_files = glob.glob(os.path.join(path, "*.csv"))
 df = pd.read_csv(csv_files[0])
 
-# 불필요한 인덱스 컬럼이 있다면 제거
 if 'Unnamed: 0' in df.columns:
     df = df.drop(columns=['Unnamed: 0'])
 
-print("\n[데이터 미리보기]")
-print(df.head())
+# ==========================================
+# 2. 4분할 데이터 시각화 대시보드 구성
+# ==========================================
+print("\n데이터 분석 대시보드 창이 뜹니다. 창을 닫아야 다음 회귀 분석 결과가 출력됩니다!")
+
+# 2x2 사이즈의 도화지(Figure) 생성
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(14, 10))
+fig.suptitle('Advertising ROI Analysis Dashboard', fontsize=20, fontweight='bold')
+
+# "그래프 1 (좌측 상단): 전체 변수 간 상관관계 히트맵"
+sns.heatmap(df.corr(), annot=True, cmap='Blues', fmt=".2f", linewidths=.5, ax=axes[0, 0])
+axes[0, 0].set_title("1. Overall Correlation Heatmap")
+
+# "그래프 2 (우측 상단): 매체별 판매량 상관계수 랭킹 (바 차트)"
+# Sales와의 상관계수만 추출하여 내림차순 정렬
+corr_with_sales = df.corr()['Sales'].drop('Sales').sort_values(ascending=False)
+sns.barplot(x=corr_with_sales.index, y=corr_with_sales.values, ax=axes[0, 1], hue=corr_with_sales.index, legend=False, palette='viridis')
+axes[0, 1].set_title("2. ROI Ranking by Medium (Correlation with Sales)")
+axes[0, 1].set_ylabel("Correlation Coefficient")
+axes[0, 1].set_xlabel("")
+
+# "그래프 3 (좌측 하단): 1등 매체(TV)와 판매량 간의 회귀 분석 (스캐터 플롯 + 회귀선)"
+sns.regplot(data=df, x='TV', y='Sales', ax=axes[1, 0], scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
+axes[1, 0].set_title("3. Linear Regression: TV Budget vs Sales")
+
+# "그래프 4 (우측 하단): 타겟 데이터(Sales)의 분포도"
+sns.histplot(df['Sales'], kde=True, ax=axes[1, 1], color='purple')
+axes[1, 1].set_title("4. Distribution of Target Data (Sales)")
+
+# 그래프 간격 조절 및 출력
+plt.tight_layout(rect=[0, 0, 1, 0.95])
+plt.show() # 여기서 창이 열립니다.
 
 # ==========================================
-# 2. 상관관계 시각화 (Heatmap)
+# 3. 단순 선형 회귀 분석 수치 도출
 # ==========================================
-print("\n상관관계 히트맵 창이 뜹니다. 창을 닫아야 다음 회귀 분석이 진행됩니다!")
-plt.figure(figsize=(8, 6))
-# 데이터의 각 변수 간 상관계수를 계산하여 히트맵으로 시각화
-sns.heatmap(df.corr(), annot=True, cmap='Blues', fmt=".2f", linewidths=.5)
-plt.title("Correlation Heatmap: Media Budgets vs Sales")
-plt.tight_layout()
-plt.show() # 창이 열립니다. 닫아주세요.
+print("\n[머신러닝 선형 회귀 분석 수치 결과]")
 
-# ==========================================
-# 3. 단순 선형 회귀 분석 (가장 효율이 좋은 TV 광고비 기준)
-# ==========================================
-print("\n[머신러닝 선형 회귀 분석 결과]")
+X = df[['TV']]
+y = df['Sales']
 
-# 독립변수(X)와 종속변수(y) 설정
-X = df[['TV']]   # TV 광고비
-y = df['Sales']  # 판매량
-
-# 선형 회귀 모델 생성 및 학습
 model = LinearRegression()
 model.fit(X, y)
 
-# 모델의 기울기(Coefficient)와 절편(Intercept) 추출
 coef = model.coef_[0]
 intercept = model.intercept_
 
